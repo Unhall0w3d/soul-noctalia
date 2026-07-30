@@ -1,0 +1,15 @@
+# Noctalia plugins catalog.
+
+[[plugin]]
+id = "soul/overview"
+name = "Soul Overview"
+version = "0.2.0"
+updated_at = 1785452141
+added_at = 1785452141
+author = "Unhall0w3d"
+license = "MIT"
+icon = "sparkles"
+description = "A compact view of Soul, its active Core, voice presence, and SSH-integrated fleet health."
+deprecated = false
+plugin_api = 9
+tags = ["bar", "panel", "service", "system", "utility"]

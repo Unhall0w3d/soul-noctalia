@@ -1,0 +1,35 @@
+id = "soul/overview"
+name = "Soul Overview"
+version = "0.2.0"
+plugin_api = 9
+author = "Unhall0w3d"
+license = "MIT"
+icon = "sparkles"
+description = "A compact view of Soul, its active Core, voice presence, and SSH-integrated fleet health."
+tags = ["bar", "panel", "service", "system", "utility"]
+dependencies = ["soul-noctalia"]
+
+[[setting]]
+key = "soul_command"
+type = "string"
+label_key = "settings.soul_command.label"
+description_key = "settings.soul_command.description"
+default = "soul-noctalia"
+advanced = true
+
+[[widget]]
+id = "soul"
+entry = "widget.luau"
+
+[[panel]]
+id = "overview"
+entry = "panel.luau"
+width = 520
+height = 600
+placement = "attached"
+position = "auto"
+open_near_click = false
+
+[[service]]
+id = "collector"
+entry = "service.luau"
