@@ -39,8 +39,15 @@ end
 
 manifest = File.read(File.join(plugin, "plugin.toml"))
 raise "plugin id differs" unless manifest.include?('id = "soul/overview"')
+raise "plugin version differs" unless manifest.include?('version = "0.2.1"')
 raise "portable Soul command differs" unless manifest.include?('default = "soul-noctalia"')
 raise "companion dependency is undeclared" unless manifest.include?('dependencies = ["soul-noctalia"]')
+
+panel = File.read(File.join(plugin, "panel.luau"))
+widget = File.read(File.join(plugin, "widget.luau"))
+raise "Free Core state is not projected" unless panel.include?('mode == "free"') && panel.include?('No model loaded')
+raise "Dev Core state is not projected" unless panel.include?('mode == "dev"') && panel.include?('Development lane active')
+raise "bar tooltip omits Core state" unless widget.include?('Core state: {coreStateText(core)}')
 
 translation = JSON.parse(File.read(File.join(plugin, "translations", "en.json")))
 %w[settings.soul_command.label settings.soul_command.description].each do |key|
