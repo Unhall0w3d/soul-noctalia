@@ -38,8 +38,10 @@ forbidden.each do |label, pattern|
 end
 
 manifest = File.read(File.join(plugin, "plugin.toml"))
+catalog = File.read(File.join(root, "catalog.toml"))
 raise "plugin id differs" unless manifest.include?('id = "soul/overview"')
-raise "plugin version differs" unless manifest.include?('version = "0.2.1"')
+raise "plugin version differs" unless manifest.include?('version = "0.3.0"')
+raise "catalog version differs from plugin" unless catalog.include?('version = "0.3.0"')
 raise "portable Soul command differs" unless manifest.include?('default = "soul-noctalia"')
 raise "companion dependency is undeclared" unless manifest.include?('dependencies = ["soul-noctalia"]')
 
@@ -48,6 +50,13 @@ widget = File.read(File.join(plugin, "widget.luau"))
 raise "Free Core state is not projected" unless panel.include?('mode == "free"') && panel.include?('No model loaded')
 raise "Dev Core state is not projected" unless panel.include?('mode == "dev"') && panel.include?('Development lane active')
 raise "bar tooltip omits Core state" unless widget.include?('Core state: {coreStateText(core)}')
+
+service = File.read(File.join(plugin, "service.luau"))
+raise "five-Core allowlist differs" unless %w[daily amd-free music free dev].all? { |core| service.include?(%(id == "#{core}")) }
+raise "Core preview schema is not enforced" unless service.include?('soul.noctalia.core_control.v1')
+raise "Core activation omits exact gate fields" unless %w[--target-profile --confirmation --expected-digest].all? { |flag| service.include?(flag) }
+raise "pending Core preview is not memory-only" unless service.include?('local pendingCorePreview = nil')
+raise "Core selection is not a distinct two-click flow" unless panel.include?('action = "core-preview"') && panel.include?('action = "core-activate"')
 
 translation = JSON.parse(File.read(File.join(plugin, "translations", "en.json")))
 %w[settings.soul_command.label settings.soul_command.description].each do |key|

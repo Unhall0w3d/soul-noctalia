@@ -9,8 +9,10 @@ local snapshot = noctalia.state.get("soul_snapshot") or {
   fleet = { available = false, device_count = 0, healthy_count = 0, devices = {} },
 }
 local action = noctalia.state.get("soul_action") or { busy = false }
+local coreAction = noctalia.state.get("soul_core_action") or { busy = false, stage = "idle" }
 local SOUL_COMMAND = tostring(noctalia.getConfig("soul_command") or "")
 local flippedDevices = {}
+local corePickerOpen = false
 local render
 
 local function statusColor(health)
@@ -133,6 +135,74 @@ local function fleetRows()
   return rows, rowGap
 end
 
+local function requestCorePreview(choice)
+  if choice.active == true or coreAction.busy == true then return end
+  noctalia.state.set("soul_command", { action = "core-preview", core_id = choice.id, requestedAt = os.time() })
+end
+
+local function requestCoreActivation()
+  local target = coreAction.target_core or {}
+  if coreAction.stage ~= "review" or coreAction.busy == true or target.id == nil then return end
+  noctalia.state.set("soul_command", { action = "core-activate", core_id = target.id, requestedAt = os.time() })
+end
+
+local function cancelCoreActivation()
+  noctalia.state.set("soul_command", { action = "core-cancel", requestedAt = os.time() })
+end
+
+local function toggleCorePicker()
+  corePickerOpen = not corePickerOpen
+  if not corePickerOpen and coreAction.stage == "review" then cancelCoreActivation() end
+  render()
+end
+
+local function coreChoiceRows(core)
+  local rows = {}
+  for _, choice in ipairs(core.choices or {}) do
+    table.insert(rows, ui.button({
+      key = tostring(choice.id or "unknown"),
+      text = choice.label or choice.id or "Unknown Core",
+      glyph = choice.active == true and "check" or "player-play",
+      glyphSize = 18,
+      fontSize = 12,
+      contentAlign = "start",
+      controlSize = "lg",
+      height = 42,
+      variant = choice.active == true and "primary" or "outline",
+      selected = choice.active == true,
+      enabled = choice.active ~= true and coreAction.busy ~= true,
+      tooltip = choice.active == true and "This Core is active" or "Review this exact Core transition",
+      onClick = function() requestCorePreview(choice) end,
+    }))
+  end
+  if #rows == 0 then
+    table.insert(rows, ui.label({ text = "Soul did not return a Core inventory.", color = "error", textAlign = "center" }))
+  end
+  return rows
+end
+
+local function coreReviewCard()
+  local target = coreAction.target_core or {}
+  local source = coreAction.source_core or {}
+  local items = {
+    ui.label({ text = "Core authority", fontWeight = "bold", color = "primary" }),
+    ui.label({ text = coreAction.message or "Select a Core to review its exact transition.", color = coreAction.ok == false and "error" or "on_surface_variant", fontSize = 12 }),
+  }
+  if coreAction.stage == "review" then
+    table.insert(items, ui.label({ text = `{source.label or "Current Core"} → {target.label or "Requested Core"}`, fontSize = 17, fontWeight = "bold" }))
+    table.insert(items, ui.label({ text = target.purpose or "", color = "on_surface_variant", fontSize = 12 }))
+    table.insert(items, ui.label({
+      text = coreAction.service_mutation_required == true and "This transition will start or stop reviewed local model runtimes." or "This transition changes Core intent without restarting the shared chat runtime.",
+      color = "secondary", fontSize = 12,
+    }))
+    table.insert(items, ui.row({ gap = 8 }, {
+      ui.button({ text = `Activate {target.label or "Core"}`, glyph = "player-play", variant = "primary", onClick = requestCoreActivation, enabled = coreAction.busy ~= true, flexGrow = 1 }),
+      ui.button({ text = "Cancel", variant = "outline", onClick = cancelCoreActivation, enabled = coreAction.busy ~= true }),
+    }))
+  end
+  return card(items)
+end
+
 render = function()
   local soul = snapshot.soul or {}
   local core = snapshot.core or {}
@@ -142,7 +212,7 @@ render = function()
   local voiceButtonText = voice.running and "Already open" or "Launch Voice Presence"
   local fleetItems, fleetGap = fleetRows()
 
-  panel.render(ui.column({ flexGrow = 1, gap = 12, padding = 16 }, {
+  local children = {
     ui.row({ gap = 10, align = "center" }, {
       ui.glyph({ name = "sparkles", size = 28, color = "primary" }),
       ui.column({ gap = 1, flexGrow = 1 }, {
@@ -152,11 +222,20 @@ render = function()
       ui.button({ text = "Refresh", glyph = "refresh", variant = "outline", onClick = "onRefresh", enabled = snapshot.loading ~= true }),
     }),
     card({
-      ui.label({ text = "Active Core", fontWeight = "bold", color = "primary" }),
+      ui.row({ gap = 8, align = "center" }, {
+        ui.label({ text = "Active Core", fontWeight = "bold", color = "primary", flexGrow = 1 }),
+        ui.button({ text = corePickerOpen and "Back" or "Change Core", glyph = corePickerOpen and "arrow-left" or "refresh", variant = "outline", onClick = toggleCorePicker, enabled = coreAction.busy ~= true }),
+      }),
       ui.label({ text = core.label or core.mode or "Unavailable", fontSize = 18, fontWeight = "bold" }),
       ui.label({ text = `State: {coreStateText(core)}`, color = "on_surface_variant" }),
     }),
-    card({
+  }
+
+  if corePickerOpen then
+    table.insert(children, ui.column({ gap = 6 }, coreChoiceRows(core)))
+    table.insert(children, coreReviewCard())
+  else
+    table.insert(children, card({
       ui.row({ gap = 8, align = "center" }, {
         ui.glyph({ name = "microphone", size = 20, color = voice.running and "tertiary" or "on_surface_variant" }),
         ui.column({ gap = 2, flexGrow = 1 }, {
@@ -166,14 +245,16 @@ render = function()
         ui.button({ text = voiceButtonText, variant = "outline", onClick = "onVoiceLaunch", enabled = voice.available == true and voice.running ~= true and action.busy ~= true }),
       }),
       action.message and ui.label({ text = action.message, color = action.ok == false and "error" or "on_surface_variant", fontSize = 12 }) or ui.spacer({ height = 0 }),
-    }),
-    ui.row({ gap = 8, align = "center" }, {
+    }))
+    table.insert(children, ui.row({ gap = 8, align = "center" }, {
       ui.label({ text = "SSH-integrated fleet", fontWeight = "bold", flexGrow = 1 }),
       ui.label({ text = `{tonumber(fleet.healthy_count) or 0}/{tonumber(fleet.device_count) or 0} healthy`, color = "on_surface", fontWeight = "bold" }),
-    }),
-    ui.column({ gap = fleetGap }, fleetItems),
-    snapshot.error and ui.label({ text = snapshot.error, color = "error", fontSize = 12, maxLines = 2 }) or ui.spacer({ height = 0 }),
-  }))
+    }))
+    table.insert(children, ui.column({ gap = fleetGap }, fleetItems))
+    table.insert(children, snapshot.error and ui.label({ text = snapshot.error, color = "error", fontSize = 12, maxLines = 2 }) or ui.spacer({ height = 0 }))
+  end
+
+  panel.render(ui.column({ flexGrow = 1, gap = 12, padding = 16 }, children))
 end
 
 noctalia.state.watch("soul_snapshot", function(value)
@@ -182,6 +263,10 @@ end)
 
 noctalia.state.watch("soul_action", function(value)
   if type(value) == "table" then action = value; render() end
+end)
+
+noctalia.state.watch("soul_core_action", function(value)
+  if type(value) == "table" then coreAction = value; render() end
 end)
 
 function onOpen(_context)
