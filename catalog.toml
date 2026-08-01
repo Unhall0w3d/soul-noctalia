@@ -3,13 +3,13 @@
 [[plugin]]
 id = "soul/overview"
 name = "Soul Overview"
-version = "0.2.0"
-updated_at = 1785452141
+version = "0.3.0"
+updated_at = 1785559009
 added_at = 1785452141
 author = "Unhall0w3d"
 license = "MIT"
 icon = "sparkles"
-description = "A compact view of Soul, its active Core, voice presence, and SSH-integrated fleet health."
+description = "View Soul, review and activate Cores, launch voice presence, and inspect SSH-integrated fleet health."
 deprecated = false
 plugin_api = 9
 tags = ["bar", "panel", "service", "system", "utility"]
