@@ -19,6 +19,15 @@ local function statusColor(health)
   return "secondary"
 end
 
+local function coreStateText(core)
+  if core.available ~= true then return "Unavailable" end
+  local mode = tostring(core.mode or core.id or "")
+  if mode == "free" then return "No model loaded" end
+  if mode == "dev" then return "Development lane active" end
+  if mode == "" or mode == "unloaded" then return "No Core active" end
+  return "Core active"
+end
+
 local function card(children)
   return ui.column({ gap = 8, padding = 12, fill = "surface_variant/0.45", radius = 12 }, children)
 end
@@ -145,7 +154,7 @@ render = function()
     card({
       ui.label({ text = "Active Core", fontWeight = "bold", color = "primary" }),
       ui.label({ text = core.label or core.mode or "Unavailable", fontSize = 18, fontWeight = "bold" }),
-      ui.label({ text = `Runtime: {core.runtime_status or "unknown"}`, color = "on_surface_variant" }),
+      ui.label({ text = `State: {coreStateText(core)}`, color = "on_surface_variant" }),
     }),
     card({
       ui.row({ gap = 8, align = "center" }, {

@@ -16,6 +16,15 @@ local function healthColor()
   return "error"
 end
 
+local function coreStateText(core)
+  if core.available ~= true then return "unavailable" end
+  local mode = tostring(core.mode or core.id or "")
+  if mode == "free" then return "no model loaded" end
+  if mode == "dev" then return "development lane active" end
+  if mode == "" or mode == "unloaded" then return "no Core active" end
+  return "active"
+end
+
 local function render()
   local core = snapshot.core or {}
   local fleet = snapshot.fleet or {}
@@ -28,6 +37,7 @@ local function render()
   barWidget.setTooltip(table.concat({
     `Soul {snapshot.soul and snapshot.soul.version or "unknown"}`,
     `Core: {core.label or core.mode or "unavailable"}`,
+    `Core state: {coreStateText(core)}`,
     `SSH fleet: {tonumber(fleet.healthy_count) or 0}/{tonumber(fleet.device_count) or 0} healthy`,
   }, "\n"))
 end

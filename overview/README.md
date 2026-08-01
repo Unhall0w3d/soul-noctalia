@@ -5,6 +5,12 @@
 Soul Overview adds a compact bar indicator and attached panel for Soul's active
 Core, Voice Presence, and dynamically enrolled SSH-integrated fleet.
 
+The active-Core display follows Soul's five-Core contract: **Soul Core**,
+**Soul-Lite Core**, **Creative Core**, **Free Core**, and **Dev Core**. Free Core
+is shown explicitly as having no model loaded; Dev Core is identified as the
+active development lane. Core activation remains in Soul's guarded Dashboard
+flow rather than being duplicated in this status-oriented plugin.
+
 ## Plugin
 
 | Field | Value |
