@@ -254,8 +254,8 @@ render = function()
     table.insert(children, snapshot.error and ui.label({ text = snapshot.error, color = "error", fontSize = 12, maxLines = 2 }) or ui.spacer({ height = 0 }))
   end
 
-  panel.render(ui.column({ height = 600, padding = 16 }, {
-    ui.scroll({ height = 568, gap = 12 }, children),
+  panel.render(ui.column({ height = 568, padding = 16 }, {
+    ui.scroll({ flexGrow = 1, gap = 12 }, children),
   }))
 end
 
