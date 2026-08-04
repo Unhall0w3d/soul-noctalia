@@ -3,7 +3,9 @@
 ![Soul Overview thumbnail](thumbnail.webp)
 
 Soul Overview adds a compact bar indicator and attached panel for Soul's active
-Core, Voice Presence, and dynamically enrolled SSH-integrated fleet.
+Core, Voice Presence, and dynamic integrated fleet. Read-only local, host-local,
+and network-inventory cards can appear beside SSH-managed systems; only devices
+with an explicit action supplied by Soul can open a terminal connection.
 
 The active-Core control follows Soul's five-Core contract: **Soul Core**,
 **Soul-Lite Core**, **Creative Core**, **Free Core**, and **Dev Core**. Free Core
@@ -47,7 +49,8 @@ Within the panel:
 - select **Change Core**, choose one of Soul's five configured Cores, review
   the exact transition, then select **Activate** as the second explicit gate;
 - select **Launch Voice Presence** to ask Soul to open its foreground voice UI;
-- left-click a device to open Soul's allowed connection in the default terminal;
+- left-click a device to open Soul's allowed connection in the default terminal
+  when Soul supplies that action; read-only cards remain inert;
 - right-click a device to toggle its generic detail face;
 - select **Refresh** to reread Soul's cached companion status.
 
