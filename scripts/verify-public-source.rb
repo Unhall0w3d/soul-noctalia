@@ -40,8 +40,8 @@ end
 manifest = File.read(File.join(plugin, "plugin.toml"))
 catalog = File.read(File.join(root, "catalog.toml"))
 raise "plugin id differs" unless manifest.include?('id = "soul/overview"')
-raise "plugin version differs" unless manifest.include?('version = "0.3.0"')
-raise "catalog version differs from plugin" unless catalog.include?('version = "0.3.0"')
+raise "plugin version differs" unless manifest.include?('version = "0.3.1"')
+raise "catalog version differs from plugin" unless catalog.include?('version = "0.3.1"')
 raise "portable Soul command differs" unless manifest.include?('default = "soul-noctalia"')
 raise "companion dependency is undeclared" unless manifest.include?('dependencies = ["soul-noctalia"]')
 
@@ -50,6 +50,9 @@ widget = File.read(File.join(plugin, "widget.luau"))
 raise "Free Core state is not projected" unless panel.include?('mode == "free"') && panel.include?('No model loaded')
 raise "Dev Core state is not projected" unless panel.include?('mode == "dev"') && panel.include?('Development lane active')
 raise "bar tooltip omits Core state" unless widget.include?('Core state: {coreStateText(core)}')
+raise "panel still claims an SSH-only fleet" if panel.include?("SSH-integrated fleet") || panel.include?("No SSH-integrated devices")
+raise "panel omits the integrated-fleet boundary" unless panel.include?("Integrated fleet") && panel.include?("No integrated systems")
+raise "read-only device cards gained an implicit action" unless panel.include?("No interactive action is available") && panel.include?("onClick = canConnect and")
 
 service = File.read(File.join(plugin, "service.luau"))
 raise "five-Core allowlist differs" unless %w[daily amd-free music free dev].all? { |core| service.include?(%(id == "#{core}")) }

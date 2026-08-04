@@ -48,12 +48,12 @@ end
 
 local function frontText(device)
   local identity = rowsText(device.summary_rows, " · ")
-  if identity == "" then identity = device.subtitle or "SSH-integrated device" end
+  if identity == "" then identity = device.subtitle or "Integrated system" end
   return (device.display_name or device.id or "Unknown device") .. "    " .. (device.health or "unknown") .. "\n" .. identity
 end
 
 local function backText(device)
-  local title = (device.display_name or device.id or "Device") .. " — " .. (device.subtitle or "SSH-integrated device")
+  local title = (device.display_name or device.id or "Device") .. " — " .. (device.subtitle or "Integrated system")
   local details = rowsText(device.detail_rows, "\n")
   return details == "" and title or title .. "\n" .. details
 end
@@ -124,13 +124,13 @@ local function fleetRows()
         variant = statusColor(device.health) == "error" and "destructive" or "outline",
         selected = flipped,
         tooltip = canConnect and (flipped and "Left-click to connect · right-click to return to the fleet" or "Left-click to connect · right-click for details") or "No interactive action is available",
-        onClick = function() connectDevice(device) end,
+        onClick = canConnect and function() connectDevice(device) end or nil,
         onRightClick = function() flipDevice(device) end,
       }))
     end
   end
   if #rows == 0 then
-    table.insert(rows, ui.label({ text = "No SSH-integrated devices are available.", color = "on_surface_variant", textAlign = "center" }))
+    table.insert(rows, ui.label({ text = "No integrated systems are available.", color = "on_surface_variant", textAlign = "center" }))
   end
   return rows, rowGap
 end
@@ -247,7 +247,7 @@ render = function()
       action.message and ui.label({ text = action.message, color = action.ok == false and "error" or "on_surface_variant", fontSize = 12 }) or ui.spacer({ height = 0 }),
     }))
     table.insert(children, ui.row({ gap = 8, align = "center" }, {
-      ui.label({ text = "SSH-integrated fleet", fontWeight = "bold", flexGrow = 1 }),
+      ui.label({ text = "Integrated fleet", fontWeight = "bold", flexGrow = 1 }),
       ui.label({ text = `{tonumber(fleet.healthy_count) or 0}/{tonumber(fleet.device_count) or 0} healthy`, color = "on_surface", fontWeight = "bold" }),
     }))
     table.insert(children, ui.column({ gap = fleetGap }, fleetItems))
