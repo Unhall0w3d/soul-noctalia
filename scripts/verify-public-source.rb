@@ -59,6 +59,7 @@ arrpc_service = File.read(File.join(arrpc_plugin, "service.luau"))
 raise "arRPC clear flow does not require application identity" unless arrpc_service.include?('clear --application-id')
 raise "arRPC override state is not locally retained" unless arrpc_service.include?('noctalia.pluginDataDir()') && arrpc_service.include?('local function persist()')
 raise "arRPC clear flow cannot reuse retained identity" unless arrpc_service.include?('validApplicationId(requestedAppId)') && arrpc_service.include?('snapshot.application_id')
+raise "arRPC restart cannot invalidate stale override state" unless arrpc_service.include?('currentIdentity ~= tostring(snapshot.socket_identity')
 raise "arRPC helper does not remain one-shot" unless File.read(File.join(arrpc_plugin, "arrpc-manual-presence")).include?("Each command makes one local Unix-socket request and exits")
 
 panel = File.read(File.join(plugin, "panel.luau"))

@@ -41,6 +41,14 @@ class ArrpcManualPresenceTests(unittest.TestCase):
         with mock.patch.dict(module.os.environ, {"XDG_RUNTIME_DIR": "/tmp/arrpc-runtime"}, clear=True):
             self.assertEqual(module.socket_candidates()[0], Path("/tmp/arrpc-runtime/discord-ipc-0"))
 
+    def test_socket_identity_changes_with_rpc_instance(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            socket_path = Path(temporary) / "discord-ipc-0"
+            socket_path.touch()
+            with mock.patch.object(module, "socket_candidates", return_value=[socket_path]):
+                identity = module.socket_identity()
+            self.assertRegex(identity, r"^\d+:\d+$")
+
     def test_publish_handshake_and_activity_frame(self) -> None:
         received: list[tuple[int, dict]] = []
         with tempfile.TemporaryDirectory() as temporary:

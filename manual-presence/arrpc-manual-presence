@@ -26,14 +26,29 @@ SOCKET_TIMEOUT_SECONDS = 2.0
 MANUAL_ACTIVITY_PID = 12001
 
 
-def result(*, ok: bool, available: bool, message: str) -> int:
-    print(json.dumps({"ok": ok, "available": available, "message": message}, separators=(",", ":")))
+def result(*, ok: bool, available: bool, message: str, socket_identity: str = "") -> int:
+    print(json.dumps({
+        "ok": ok,
+        "available": available,
+        "message": message,
+        "socket_identity": socket_identity,
+    }, separators=(",", ":")))
     return 0 if ok else 1
 
 
 def socket_candidates() -> list[Path]:
     runtime = os.environ.get("XDG_RUNTIME_DIR") or os.environ.get("TMPDIR") or "/tmp"
     return [Path(runtime) / f"discord-ipc-{index}" for index in range(10)]
+
+
+def socket_identity() -> str:
+    for candidate in socket_candidates():
+        try:
+            metadata = candidate.stat()
+            return f"{metadata.st_dev}:{metadata.st_ino}"
+        except FileNotFoundError:
+            continue
+    return ""
 
 
 def encode(opcode: int, payload: dict[str, Any]) -> bytes:
@@ -129,7 +144,12 @@ def main() -> int:
             candidate = next((path for path in socket_candidates() if path.exists()), None)
             if candidate is None:
                 return result(ok=False, available=False, message="arRPC is not running or has no local RPC socket.")
-            return result(ok=True, available=True, message="arRPC local RPC socket is available.")
+            return result(
+                ok=True,
+                available=True,
+                message="arRPC local RPC socket is available.",
+                socket_identity=socket_identity(),
+            )
         except OSError as error:
             return result(ok=False, available=False, message=f"arRPC is unavailable: {error}")
 
@@ -145,7 +165,12 @@ def main() -> int:
             activity["timestamps"] = {"start": args.started_at}
         try:
             send_activity(args.application_id, activity)
-            return result(ok=True, available=True, message="Manual presence published.")
+            return result(
+                ok=True,
+                available=True,
+                message="Manual presence published.",
+                socket_identity=socket_identity(),
+            )
         except (OSError, RuntimeError, json.JSONDecodeError) as error:
             return result(ok=False, available=False, message=str(error))
 
@@ -154,7 +179,12 @@ def main() -> int:
             return result(ok=False, available=False, message="A valid Application ID is required to clear this manual activity.")
         try:
             send_activity(args.application_id, None)
-            return result(ok=True, available=True, message="Manual presence cleared.")
+            return result(
+                ok=True,
+                available=True,
+                message="Manual presence cleared.",
+                socket_identity=socket_identity(),
+            )
         except (OSError, RuntimeError, json.JSONDecodeError) as error:
             return result(ok=False, available=False, message=str(error))
 

@@ -12,6 +12,7 @@ local snapshot = {
   details = "",
   state = "",
   include_timestamp = true,
+  socket_identity = "",
 }
 
 local function validApplicationId(value)
@@ -25,6 +26,7 @@ local function persist()
     details = tostring(snapshot.details or ""),
     state = tostring(snapshot.state or ""),
     include_timestamp = snapshot.include_timestamp ~= false,
+    socket_identity = tostring(snapshot.socket_identity or ""),
   }))
 end
 
@@ -40,6 +42,7 @@ local function restore()
   if type(decoded.details) == "string" and #decoded.details <= 128 then snapshot.details = decoded.details end
   if type(decoded.state) == "string" and #decoded.state <= 128 then snapshot.state = decoded.state end
   snapshot.include_timestamp = decoded.include_timestamp ~= false
+  if type(decoded.socket_identity) == "string" then snapshot.socket_identity = decoded.socket_identity end
 end
 
 local function safeCommand()
@@ -66,7 +69,7 @@ local function setResult(result, successMessage, failureMessage)
   snapshot.ok = ok
   snapshot.available = type(decoded) == "table" and decoded.available == true
   snapshot.message = ok and successMessage or (type(decoded) == "table" and tostring(decoded.message or failureMessage) or failureMessage)
-  return ok
+  return ok, decoded
 end
 
 local function runStatus()
@@ -82,7 +85,16 @@ local function runStatus()
   publish()
   noctalia.runAsync(command .. " status", function(result)
     snapshot.busy = false
-    setResult(result, snapshot.enabled == true and "Manual override is active." or "Manual presence is off.", "Unable to query arRPC.")
+    local ok, decoded = setResult(result, snapshot.enabled == true and "Manual override is active." or "Manual presence is off.", "Unable to query arRPC.")
+    if ok and snapshot.enabled == true then
+      local currentIdentity = type(decoded) == "table" and tostring(decoded.socket_identity or "") or ""
+      if currentIdentity == "" or currentIdentity ~= tostring(snapshot.socket_identity or "") then
+        snapshot.enabled = false
+        snapshot.socket_identity = currentIdentity
+        snapshot.message = "arRPC restarted after the override was published; automatic activity is active."
+        persist()
+      end
+    end
     publish()
   end, 5000)
 end
@@ -111,12 +123,14 @@ local function publishOverride(command)
   if command.include_timestamp == true then args = args .. " --started-at " .. tostring(os.time()) end
   noctalia.runAsync(args, function(result)
     snapshot.busy = false
-    if setResult(result, "Manual override published. Turn it off to return control to normal arRPC activity.", "Unable to publish manual presence.") then
+    local ok, decoded = setResult(result, "Manual override published. Turn it off to return control to normal arRPC activity.", "Unable to publish manual presence.")
+    if ok then
       snapshot.enabled = true
       snapshot.application_id = appId
       snapshot.details = details
       snapshot.state = state
       snapshot.include_timestamp = command.include_timestamp == true
+      snapshot.socket_identity = type(decoded) == "table" and tostring(decoded.socket_identity or "") or ""
       persist()
     end
     publish()
@@ -143,8 +157,10 @@ local function clearOverride(command)
   publish()
   noctalia.runAsync(executable .. " clear --application-id " .. shellQuote(appId), function(result)
     snapshot.busy = false
-    if setResult(result, "Manual override cleared. arRPC is available for normal application activity.", "Unable to clear manual presence.") then
+    local ok, decoded = setResult(result, "Manual override cleared. arRPC is available for normal application activity.", "Unable to clear manual presence.")
+    if ok then
       snapshot.enabled = false
+      snapshot.socket_identity = type(decoded) == "table" and tostring(decoded.socket_identity or "") or ""
       persist()
     end
     publish()
