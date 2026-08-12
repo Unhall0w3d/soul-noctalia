@@ -19,7 +19,7 @@ from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parents[1]
-HELPER = ROOT / "arrpc-manual-presence" / "arrpc-manual-presence"
+HELPER = ROOT / "manual-presence" / "arrpc-manual-presence"
 sys.dont_write_bytecode = True
 loader = importlib.machinery.SourceFileLoader("arrpc_manual_presence", str(HELPER))
 spec = importlib.util.spec_from_loader("arrpc_manual_presence", loader)

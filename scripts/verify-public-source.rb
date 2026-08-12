@@ -45,13 +45,14 @@ raise "catalog version differs from plugin" unless catalog.include?('version = "
 raise "portable Soul command differs" unless manifest.include?('default = "soul-noctalia"')
 raise "companion dependency is undeclared" unless manifest.include?('dependencies = ["soul-noctalia"]')
 
-arrpc_plugin = File.join(root, "arrpc-manual-presence")
+arrpc_plugin = File.join(root, "manual-presence")
 arrpc_required = %w[plugin.toml README.md panel.luau service.luau widget.luau arrpc-manual-presence translations/en.json]
 arrpc_missing = arrpc_required.reject { |path| File.file?(File.join(arrpc_plugin, path)) }
 raise "missing arRPC plugin files: #{arrpc_missing.join(", ")}" unless arrpc_missing.empty?
 raise "arRPC plugin must not include Python bytecode" unless Dir.glob(File.join(arrpc_plugin, "**", "__pycache__", "*"), File::FNM_DOTMATCH).empty?
 arrpc_manifest = File.read(File.join(arrpc_plugin, "plugin.toml"))
 raise "arRPC plugin id differs" unless arrpc_manifest.include?('id = "arrpc/manual-presence"')
+raise "arRPC plugin directory does not match its catalog id" unless File.basename(arrpc_plugin) == "manual-presence"
 raise "arRPC plugin version differs" unless arrpc_manifest.include?('version = "0.2.0"')
 raise "arRPC catalog version differs" unless catalog.include?('id = "arrpc/manual-presence"') && catalog.include?('version = "0.2.0"')
 arrpc_service = File.read(File.join(arrpc_plugin, "service.luau"))

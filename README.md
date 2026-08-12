@@ -19,9 +19,9 @@ Add the `soul/overview:soul` widget to a bar through Noctalia Settings.
 ## Source layout
 
 ```text
-overview/       Soul Overview plugin
-arrpc-manual-presence/  Optional standalone arRPC manual-presence plugin
-catalog.toml    Noctalia source catalog
+overview/         Soul Overview plugin
+manual-presence/  Optional standalone arRPC manual-presence plugin
+catalog.toml      Noctalia source catalog
 ```
 
 The plugin requires the `soul-noctalia` companion command supplied by Soul. No
