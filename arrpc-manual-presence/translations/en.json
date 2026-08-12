@@ -1,0 +1,4 @@
+{
+  "settings.publisher_command.label": "Manual presence publisher",
+  "settings.publisher_command.description": "Bounded local helper used to contact arRPC."
+}

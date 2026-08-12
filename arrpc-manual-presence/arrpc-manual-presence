@@ -1,0 +1,165 @@
+#!/usr/bin/env python3
+"""Bounded arRPC manual-presence publisher.
+
+Each command makes one local Unix-socket request and exits.  It never starts
+arrpc, stores Discord data, or scans local processes.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import socket
+import struct
+import sys
+import time
+import uuid
+from pathlib import Path
+from typing import Any
+
+MAX_TEXT = 128
+SOCKET_TIMEOUT_SECONDS = 2.0
+# The Discord RPC protocol associates an activity with a process ID. This
+# plugin is intentionally one-shot, so it uses a stable reserved value for
+# both publish and clear rather than a short-lived helper process ID.
+MANUAL_ACTIVITY_PID = 12001
+
+
+def result(*, ok: bool, available: bool, message: str) -> int:
+    print(json.dumps({"ok": ok, "available": available, "message": message}, separators=(",", ":")))
+    return 0 if ok else 1
+
+
+def socket_candidates() -> list[Path]:
+    runtime = os.environ.get("XDG_RUNTIME_DIR") or os.environ.get("TMPDIR") or "/tmp"
+    return [Path(runtime) / f"discord-ipc-{index}" for index in range(10)]
+
+
+def encode(opcode: int, payload: dict[str, Any]) -> bytes:
+    body = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    return struct.pack("<II", opcode, len(body)) + body
+
+
+def read_exact(connection: socket.socket, size: int) -> bytes:
+    chunks: list[bytes] = []
+    remaining = size
+    while remaining:
+        chunk = connection.recv(remaining)
+        if not chunk:
+            raise RuntimeError("arRPC closed the local RPC connection")
+        chunks.append(chunk)
+        remaining -= len(chunk)
+    return b"".join(chunks)
+
+
+def receive(connection: socket.socket) -> tuple[int, dict[str, Any]]:
+    opcode, size = struct.unpack("<II", read_exact(connection, 8))
+    if size > 64 * 1024:
+        raise RuntimeError("arRPC returned an oversized response")
+    payload = json.loads(read_exact(connection, size).decode("utf-8"))
+    if not isinstance(payload, dict):
+        raise RuntimeError("arRPC returned an invalid response")
+    return opcode, payload
+
+
+def connect(application_id: str) -> socket.socket:
+    last_error: OSError | None = None
+    for candidate in socket_candidates():
+        connection = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        connection.settimeout(SOCKET_TIMEOUT_SECONDS)
+        try:
+            connection.connect(str(candidate))
+            connection.sendall(encode(0, {"v": 1, "client_id": application_id}))
+            opcode, response = receive(connection)
+            if opcode != 1 or response.get("evt") != "READY":
+                raise RuntimeError("arRPC rejected the Discord application ID")
+            return connection
+        except OSError as error:
+            last_error = error
+            connection.close()
+        except Exception:
+            connection.close()
+            raise
+    detail = str(last_error) if last_error else "no arRPC socket was found"
+    raise RuntimeError(f"arRPC is unavailable: {detail}")
+
+
+def send_activity(application_id: str, activity: dict[str, Any] | None) -> None:
+    with connect(application_id) as connection:
+        nonce = str(uuid.uuid4())
+        connection.sendall(encode(1, {
+            "cmd": "SET_ACTIVITY",
+            "nonce": nonce,
+            "args": {"pid": MANUAL_ACTIVITY_PID, "activity": activity},
+        }))
+        opcode, response = receive(connection)
+        if opcode != 1 or response.get("nonce") != nonce or response.get("cmd") != "SET_ACTIVITY":
+            raise RuntimeError("arRPC did not acknowledge the activity change")
+        if response.get("evt") == "ERROR":
+            raise RuntimeError(str(response.get("data", {}).get("message") or "arRPC rejected the activity"))
+
+
+def valid_application_id(value: str) -> bool:
+    return value.isdigit() and 17 <= len(value) <= 19
+
+
+def valid_text(value: str, *, optional: bool = False) -> bool:
+    return (optional or bool(value)) and len(value) <= MAX_TEXT and "\x00" not in value
+
+
+def parser() -> argparse.ArgumentParser:
+    command = argparse.ArgumentParser(description=__doc__)
+    subcommands = command.add_subparsers(dest="command", required=True)
+    subcommands.add_parser("status")
+    publish = subcommands.add_parser("publish")
+    publish.add_argument("--application-id", required=True)
+    publish.add_argument("--details", required=True)
+    publish.add_argument("--state", default="")
+    publish.add_argument("--started-at", type=int)
+    clear = subcommands.add_parser("clear")
+    clear.add_argument("--application-id", required=False)
+    return command
+
+
+def main() -> int:
+    args = parser().parse_args()
+    if args.command == "status":
+        try:
+            candidate = next((path for path in socket_candidates() if path.exists()), None)
+            if candidate is None:
+                return result(ok=False, available=False, message="arRPC is not running or has no local RPC socket.")
+            return result(ok=True, available=True, message="arRPC local RPC socket is available.")
+        except OSError as error:
+            return result(ok=False, available=False, message=f"arRPC is unavailable: {error}")
+
+    if args.command == "publish":
+        if not valid_application_id(args.application_id) or not valid_text(args.details) or not valid_text(args.state, optional=True):
+            return result(ok=False, available=False, message="Application ID or activity text failed local validation.")
+        activity: dict[str, Any] = {"details": args.details, "instance": False}
+        if args.state:
+            activity["state"] = args.state
+        if args.started_at is not None:
+            if args.started_at < 0 or args.started_at > int(time.time()) + 60:
+                return result(ok=False, available=False, message="Timestamp failed local validation.")
+            activity["timestamps"] = {"start": args.started_at}
+        try:
+            send_activity(args.application_id, activity)
+            return result(ok=True, available=True, message="Manual presence published.")
+        except (OSError, RuntimeError, json.JSONDecodeError) as error:
+            return result(ok=False, available=False, message=str(error))
+
+    if args.command == "clear":
+        if not args.application_id or not valid_application_id(args.application_id):
+            return result(ok=False, available=False, message="A valid Application ID is required to clear this manual activity.")
+        try:
+            send_activity(args.application_id, None)
+            return result(ok=True, available=True, message="Manual presence cleared.")
+        except (OSError, RuntimeError, json.JSONDecodeError) as error:
+            return result(ok=False, available=False, message=str(error))
+
+    return result(ok=False, available=False, message="Unsupported command.")
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
