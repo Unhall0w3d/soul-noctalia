@@ -17,13 +17,13 @@ tags = ["bar", "panel", "service", "system", "utility"]
 [[plugin]]
 id = "arrpc/manual-presence"
 name = "arRPC Manual Presence"
-version = "0.1.0"
+version = "0.2.0"
 updated_at = 1786566000
 added_at = 1786566000
 author = "Unhall0w3d"
 license = "MIT"
 icon = "brand-discord"
-description = "Publish an explicit, manually controlled Discord Rich Presence through arRPC."
+description = "See, change, or release a manual Discord Rich Presence override through arRPC."
 deprecated = false
 plugin_api = 9
 tags = ["bar", "panel", "service", "discord", "utility"]

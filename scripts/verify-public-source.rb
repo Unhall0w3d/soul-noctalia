@@ -52,10 +52,12 @@ raise "missing arRPC plugin files: #{arrpc_missing.join(", ")}" unless arrpc_mis
 raise "arRPC plugin must not include Python bytecode" unless Dir.glob(File.join(arrpc_plugin, "**", "__pycache__", "*"), File::FNM_DOTMATCH).empty?
 arrpc_manifest = File.read(File.join(arrpc_plugin, "plugin.toml"))
 raise "arRPC plugin id differs" unless arrpc_manifest.include?('id = "arrpc/manual-presence"')
-raise "arRPC plugin version differs" unless arrpc_manifest.include?('version = "0.1.0"')
-raise "arRPC catalog version differs" unless catalog.include?('id = "arrpc/manual-presence"') && catalog.include?('version = "0.1.0"')
+raise "arRPC plugin version differs" unless arrpc_manifest.include?('version = "0.2.0"')
+raise "arRPC catalog version differs" unless catalog.include?('id = "arrpc/manual-presence"') && catalog.include?('version = "0.2.0"')
 arrpc_service = File.read(File.join(arrpc_plugin, "service.luau"))
 raise "arRPC clear flow does not require application identity" unless arrpc_service.include?('clear --application-id')
+raise "arRPC override state is not locally retained" unless arrpc_service.include?('noctalia.pluginDataDir()') && arrpc_service.include?('local function persist()')
+raise "arRPC clear flow cannot reuse retained identity" unless arrpc_service.include?('validApplicationId(requestedAppId)') && arrpc_service.include?('snapshot.application_id')
 raise "arRPC helper does not remain one-shot" unless File.read(File.join(arrpc_plugin, "arrpc-manual-presence")).include?("Each command makes one local Unix-socket request and exits")
 
 panel = File.read(File.join(plugin, "panel.luau"))

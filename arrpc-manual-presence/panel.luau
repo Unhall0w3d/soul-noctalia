@@ -7,10 +7,10 @@ local snapshot = noctalia.state.get("arrpc_manual_presence") or {
   message = "Manual presence is off.",
 }
 
-local applicationId = ""
-local details = ""
-local state = ""
-local includeTimestamp = true
+local applicationId = tostring(snapshot.application_id or "")
+local details = tostring(snapshot.details or "")
+local state = tostring(snapshot.state or "")
+local includeTimestamp = snapshot.include_timestamp ~= false
 local revision = 0
 local render
 
@@ -54,7 +54,7 @@ render = function()
         ui.glyph({ name = "brand-discord", size = 28, color = "primary" }),
         ui.column({ gap = 1, flexGrow = 1 }, {
           ui.label({ text = "Manual Rich Presence", fontSize = 21, fontWeight = "bold" }),
-          ui.label({ text = "A deliberate static override; it does not inspect Soul or application activity.", fontSize = 12, color = "on_surface_variant" }),
+          ui.label({ text = "Set a deliberate override, or release it so normal arRPC activity resumes.", fontSize = 12, color = "on_surface_variant" }),
         }),
       }),
       statusCard(),
@@ -73,7 +73,7 @@ render = function()
     }),
     ui.row({ gap = 8 }, {
       ui.button({ text = "Publish override", glyph = "broadcast", variant = "primary", flexGrow = 1, enabled = valid and snapshot.busy ~= true and snapshot.available == true, onClick = function() publish("publish") end }),
-      ui.button({ text = "Turn off", glyph = "player-stop", variant = "outline", enabled = validApplicationId(clean(applicationId)) and snapshot.busy ~= true, onClick = function() publish("clear") end }),
+      ui.button({ text = "Use automatic activity", glyph = "player-stop", variant = "outline", enabled = snapshot.enabled == true and snapshot.busy ~= true, onClick = function() publish("clear") end }),
     }),
   }))
 end
@@ -101,6 +101,11 @@ end
 noctalia.state.watch("arrpc_manual_presence", function(value)
   if type(value) == "table" then
     snapshot = value
+    if applicationId == "" and validApplicationId(tostring(value.application_id or "")) then
+      applicationId = tostring(value.application_id)
+    end
+    if details == "" and type(value.details) == "string" then details = value.details end
+    if state == "" and type(value.state) == "string" then state = value.state end
     render()
   end
 end)

@@ -12,6 +12,8 @@ import sys
 import tempfile
 import threading
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
 from unittest import mock
 
@@ -75,6 +77,14 @@ class ArrpcManualPresenceTests(unittest.TestCase):
         self.assertEqual(received[0][1]["client_id"], "12345678901234567")
         self.assertEqual(received[1][1]["cmd"], "SET_ACTIVITY")
         self.assertEqual(received[1][1]["args"]["activity"]["details"], "Testing")
+
+    def test_clear_uses_same_stable_activity_slot(self) -> None:
+        captured: list[tuple[str, dict | None]] = []
+        with mock.patch.object(module, "send_activity", side_effect=lambda app_id, activity: captured.append((app_id, activity))):
+            with mock.patch.object(sys, "argv", ["arrpc-manual-presence", "clear", "--application-id", "12345678901234567"]):
+                with redirect_stdout(StringIO()):
+                    self.assertEqual(module.main(), 0)
+        self.assertEqual(captured, [("12345678901234567", None)])
 
 
 if __name__ == "__main__":

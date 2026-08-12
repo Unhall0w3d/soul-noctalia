@@ -18,14 +18,19 @@ request, and exits.
    **Application ID**. No bot token, client secret, or Discord password belongs
    in this plugin.
 4. Enable `arrpc/manual-presence` in Noctalia, add its `manual-presence` widget
-   to a bar, and open the panel. The default publisher resolves from Noctalia's
-   own materialized plugin directory. Advanced users can override it with an
-   absolute path to an executable copy of `arrpc-manual-presence`.
+   to a bar, and open the panel. This is the supported interface; a generated
+   preview window is not the installed plugin. The default publisher resolves
+   from Noctalia's own materialized plugin directory. Advanced users can
+   override it with an absolute path to an executable copy of
+   `arrpc-manual-presence`.
 
 Enter the Application ID, a Details line, optional State line, then choose
 **Publish override**. While enabled, the selected activity is a deliberate
-static presence. Choose **Turn off** to send `SET_ACTIVITY` with a null
-activity; arRPC can then continue presenting ordinary application activity.
+static presence. The public Application ID and visible activity text are kept
+in Noctalia's local plugin-data directory so the active state is visible after
+a shell reload. Choose **Use automatic activity** to send `SET_ACTIVITY` with a
+null activity; arRPC can then continue presenting ordinary application
+activity.
 
 ## Scope and limitations
 

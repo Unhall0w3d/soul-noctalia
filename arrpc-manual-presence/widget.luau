@@ -10,7 +10,8 @@ local snapshot = noctalia.state.get("arrpc_manual_presence") or {
 
 local function render()
   local color = snapshot.enabled == true and "primary" or "on_surface_variant"
-  barWidget.render(ui.row({ gap = 5, align = "center" }, {
+  local container = barWidget.isVertical() and ui.column or ui.row
+  barWidget.render(container({ gap = 5, align = "center" }, {
     ui.glyph({ name = "brand-discord", size = 17, color = color }),
     ui.box({
       width = 7,
@@ -33,6 +34,13 @@ end)
 
 function onClick()
   noctalia.togglePanel(PANEL_ID)
+end
+
+function onRightClick()
+  noctalia.state.set("arrpc_manual_presence_command", {
+    action = "status",
+    requested_at = os.time(),
+  })
 end
 
 render()
