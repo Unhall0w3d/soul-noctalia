@@ -1,0 +1,35 @@
+id = "arrpc/manual-presence"
+name = "arRPC Manual Presence"
+version = "0.2.0"
+plugin_api = 9
+author = "Unhall0w3d"
+license = "MIT"
+icon = "brand-discord"
+description = "See, change, or release a manual Discord Rich Presence override through arRPC."
+tags = ["bar", "panel", "service", "discord", "utility"]
+dependencies = ["arrpc", "python3"]
+
+[[setting]]
+key = "publisher_command"
+type = "string"
+label_key = "settings.publisher_command.label"
+description_key = "settings.publisher_command.description"
+default = "./arrpc-manual-presence"
+advanced = true
+
+[[widget]]
+id = "manual-presence"
+entry = "widget.luau"
+
+[[panel]]
+id = "editor"
+entry = "panel.luau"
+width = 480
+height = 560
+placement = "attached"
+position = "auto"
+open_near_click = false
+
+[[service]]
+id = "publisher"
+entry = "service.luau"
