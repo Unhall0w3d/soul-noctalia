@@ -37,9 +37,14 @@ class ArrpcManualPresenceTests(unittest.TestCase):
         self.assertFalse(module.valid_text(""))
         self.assertFalse(module.valid_text("x" * 129))
 
-    def test_socket_candidates_use_runtime_directory(self) -> None:
+    def test_socket_candidates_prefer_flatpak_vesktop_then_native_runtime(self) -> None:
         with mock.patch.dict(module.os.environ, {"XDG_RUNTIME_DIR": "/tmp/arrpc-runtime"}, clear=True):
-            self.assertEqual(module.socket_candidates()[0], Path("/tmp/arrpc-runtime/discord-ipc-0"))
+            candidates = module.socket_candidates()
+        self.assertEqual(
+            candidates[0],
+            Path("/tmp/arrpc-runtime/.flatpak/dev.vencord.Vesktop/xdg-run/discord-ipc-0"),
+        )
+        self.assertEqual(candidates[10], Path("/tmp/arrpc-runtime/discord-ipc-0"))
 
     def test_socket_identity_changes_with_rpc_instance(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

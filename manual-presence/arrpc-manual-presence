@@ -38,7 +38,15 @@ def result(*, ok: bool, available: bool, message: str, socket_identity: str = ""
 
 def socket_candidates() -> list[Path]:
     runtime = os.environ.get("XDG_RUNTIME_DIR") or os.environ.get("TMPDIR") or "/tmp"
-    return [Path(runtime) / f"discord-ipc-{index}" for index in range(10)]
+    runtime_path = Path(runtime)
+    vesktop_runtime = runtime_path / ".flatpak" / "dev.vencord.Vesktop" / "xdg-run"
+    # Flatpak Vesktop creates its RPC socket inside its exported runtime tree.
+    # Prefer that real endpoint over the conventional host path, which may be
+    # an absent symlink or a stale socket left by a separate arRPC process.
+    return [
+        *(vesktop_runtime / f"discord-ipc-{index}" for index in range(10)),
+        *(runtime_path / f"discord-ipc-{index}" for index in range(10)),
+    ]
 
 
 def socket_identity() -> str:

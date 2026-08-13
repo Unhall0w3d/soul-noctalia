@@ -1,7 +1,8 @@
 # arRPC Manual Presence
 
 An opt-in Noctalia v5 panel for publishing one manually chosen Discord Rich
-Presence through a locally running [arRPC](https://arrpc.openasar.dev/) server.
+Presence through Vesktop's bundled [arRPC](https://arrpc.openasar.dev/) server,
+with a native arRPC installation retained as a fallback.
 
 It does **not** inspect running applications, read Discord messages, capture
 credentials, start `arrpc`, or share data with Soul. Each publish, clear, and
@@ -10,10 +11,13 @@ request, and exits.
 
 ## Setup
 
-1. Install and start `arrpc` using your distribution's normal user-service
-   workflow.
-2. Enable arRPC support in Vencord, Vesktop, or the compatible Discord client
-   you use.
+1. Install Vesktop and enable **Rich Presence via arRPC**. The Flatpak build is
+   supported directly: the publisher discovers
+   `$XDG_RUNTIME_DIR/.flatpak/dev.vencord.Vesktop/xdg-run/discord-ipc-*`
+   without requiring a host-side symlink.
+2. Do not run a separate `arrpc` service alongside Vesktop's bundled arRPC.
+   Their IPC and WebSocket endpoints can compete. A native arRPC service remains
+   supported as a fallback for non-Flatpak compatible clients.
 3. Create a Discord application in the Developer Portal and copy its public
    **Application ID**. No bot token, client secret, or Discord password belongs
    in this plugin.
